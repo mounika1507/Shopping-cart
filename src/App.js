@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { ShoppingCart, Trash } from "lucide-react";
 import "./App.css";
 import ErrorBoundary from "./ErrorBoundary";  // Import the Error Boundary
+import CategoryFilter from "./CategoryFilter";
+import PaymentForm from "./PaymentForm.js";
 
 const categories = ["All", "Italian", "American", "Japanese", "Indian", "Chinese", "Mexican", "Middle Eastern", "Dessert", "Healthy"];
 
@@ -31,11 +33,11 @@ const ProductCard = ({ product, addToCart }) => {
 
 class ShoppingCartClass extends React.Component {
   calculateTotal = () => {
-    return this.props.cart.reduce((acc, item) => acc + item.price, 0);
+    return this.props.cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   };
 
   render() {
-    const { cart, removeFromCart, proceedToPayment } = this.props;
+    const { cart, removeFromCart, updateQuantity, proceedToPayment } = this.props;
     const total = this.calculateTotal();
 
     return (
@@ -46,7 +48,12 @@ class ShoppingCartClass extends React.Component {
             {cart.map((item, index) => (
               <li key={index} className="cart-item">
                 <span className="cart-item-name">{item.name}</span>
-                <span className="cart-item-price">${item.price}</span>
+                <span className="cart-item-price">${(item.price * item.quantity).toFixed(2)}</span>
+                <div className="quantity-controls">
+                  <button onClick={() => updateQuantity(index, item.quantity - 1)}>-</button>
+                  <span>{item.quantity}</span>
+                  <button onClick={() => updateQuantity(index, item.quantity + 1)}>+</button>
+                </div>
                 <button className="remove-item" onClick={() => removeFromCart(index)}>
                   <Trash size={16} />
                 </button>
@@ -71,106 +78,6 @@ const Checkout = ({ total, cart, proceedToPayment }) => (
   </div>
 );
 
-const CategoryFilter = ({ selectedCategory, onSelectCategory }) => {
-  return (
-    <div className="category-filter">
-      <label htmlFor="category">Filter:</label>
-      <select id="category" value={selectedCategory} onChange={(e) => onSelectCategory(e.target.value)}>
-        {categories.map((category) => (
-          <option key={category} value={category}>
-            {category}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
-
-const PaymentForm = ({ goBack }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    billingAddress: '',
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission logic here, e.g., call API to process payment
-    console.log("Payment Submitted:", formData);
-    alert("Payment processed successfully!");
-  };
-
-  return (
-    <div className="payment-form-container">
-      <h2>Payment Details</h2>
-      <form onSubmit={handleSubmit}>
-        <label>Name on Card:</label>
-        <input
-          type="text"
-          name="name"
-          placeholder="Full Name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-
-        <label>Card Number:</label>
-        <input
-          type="text"
-          name="cardNumber"
-          placeholder="Card Number"
-          value={formData.cardNumber}
-          onChange={handleChange}
-          required
-        />
-
-        <label>Expiry Date:</label>
-        <input
-          type="text"
-          name="expiryDate"
-          placeholder="MM/YY"
-          value={formData.expiryDate}
-          onChange={handleChange}
-          required
-        />
-
-        <label>CVV:</label>
-        <input
-          type="text"
-          name="cvv"
-          placeholder="CVV"
-          value={formData.cvv}
-          onChange={handleChange}
-          required
-        />
-
-        <label>Billing Address:</label>
-        <input
-          type="text"
-          name="billingAddress"
-          placeholder="Billing Address"
-          value={formData.billingAddress}
-          onChange={handleChange}
-          required
-        />
-
-        <button type="submit">Submit Payment</button>
-      </form>
-      <button onClick={goBack}>Go Back</button>
-    </div>
-  );
-};
-
 export default function ShoppingCartApp() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
@@ -182,28 +89,47 @@ export default function ShoppingCartApp() {
       try {
         const response = await fetch("https://raw.githubusercontent.com/mounika1507/web-app/main/db.json");
         const data = await response.json();
-        setProducts(data.foods);
+        console.log("Fetched data:", data); // Debugging log
+        setProducts(data.foods || []);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
     fetchProducts();
+  
+  // eslint-disable-next-line react-hooks/exhaustive-deps  
   }, []);
+  
 
   const addToCart = useCallback((product) => {
-    setCart((prevCart) => [...prevCart, product]);
+    setCart((prevCart) => {
+      const existingItemIndex = prevCart.findIndex((item) => item.id === product.id);
+      if (existingItemIndex !== -1) {
+        const updatedCart = [...prevCart];
+        updatedCart[existingItemIndex].quantity += 1;
+        return updatedCart;
+      }
+      return [...prevCart, { ...product, quantity: 1 }];
+    });
   }, []);
 
   const removeFromCart = useCallback((index) => {
     setCart((prevCart) => prevCart.filter((_, i) => i !== index));
   }, []);
 
+  const updateQuantity = (index, newQuantity) => {
+    setCart((prevCart) => {
+      if (newQuantity <= 0) {
+        return prevCart.filter((_, i) => i !== index);
+      }
+      return prevCart.map((item, i) =>
+        i === index ? { ...item, quantity: newQuantity } : item
+      );
+    });
+  };
+
   const proceedToPayment = () => setShowPayment(true);
   const goBack = () => setShowPayment(false);
-
-  const filteredProducts = useMemo(() => {
-    return selectedCategory === "All" ? products : products.filter((product) => product.category === selectedCategory);
-  }, [selectedCategory, products]);
 
   return (
     <div className="app-container">
@@ -220,8 +146,8 @@ export default function ShoppingCartApp() {
           </ErrorBoundary>
         ) : (
           <>
-            <ProductList products={filteredProducts} addToCart={addToCart} />
-            <ShoppingCartClass cart={cart} removeFromCart={removeFromCart} proceedToPayment={proceedToPayment} />
+            <ProductList products={products} addToCart={addToCart} />
+            <ShoppingCartClass cart={cart} removeFromCart={removeFromCart} updateQuantity={updateQuantity} proceedToPayment={proceedToPayment} />
           </>
         )}
       </div>
