@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, Trash } from "lucide-react";
 import "./App.css";
-import ErrorBoundary from "./ErrorBoundary";  // Import the Error Boundary
+import ErrorBoundary from "./ErrorBoundary";
 import CategoryFilter from "./CategoryFilter";
 import PaymentForm from "./PaymentForm.js";
 
@@ -89,7 +89,7 @@ export default function ShoppingCartApp() {
       try {
         const response = await fetch("https://raw.githubusercontent.com/mounika1507/web-app/main/db.json");
         const data = await response.json();
-        console.log("Fetched data:", data); 
+        console.log("Fetched data:", data);
         setProducts(data.foods || []);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -97,7 +97,6 @@ export default function ShoppingCartApp() {
     };
     fetchProducts();
   }, []);
-  
 
   const addToCart = useCallback((product) => {
     setCart((prevCart) => {
@@ -129,6 +128,9 @@ export default function ShoppingCartApp() {
   const proceedToPayment = () => setShowPayment(true);
   const goBack = () => setShowPayment(false);
 
+  const filteredProducts =
+    selectedCategory === "All" ? products : products.filter((p) => p.category === selectedCategory);
+
   return (
     <div className="app-container">
       <h1 className="title">Tasty Eats</h1>
@@ -144,8 +146,13 @@ export default function ShoppingCartApp() {
           </ErrorBoundary>
         ) : (
           <>
-            <ProductList products={products} addToCart={addToCart} />
-            <ShoppingCartClass cart={cart} removeFromCart={removeFromCart} updateQuantity={updateQuantity} proceedToPayment={proceedToPayment} />
+            <ProductList products={filteredProducts} addToCart={addToCart} />
+            <ShoppingCartClass
+              cart={cart}
+              removeFromCart={removeFromCart}
+              updateQuantity={updateQuantity}
+              proceedToPayment={proceedToPayment}
+            />
           </>
         )}
       </div>
