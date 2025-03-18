@@ -47,7 +47,7 @@ class ShoppingCartClass extends React.Component {
           <ul className="cart-items">
             {cart.map((item, index) => (
               <li key={index} className="cart-item">
-                <span className="cart-item-name">{item.name}</span>
+                <span className="cart-item-name">{item.name} (*{item.quantity})</span>
                 <span className="cart-item-price">${(item.price * item.quantity).toFixed(2)}</span>
                 <div className="quantity-controls">
                   <button onClick={() => updateQuantity(index, item.quantity - 1)}>-</button>
