@@ -89,15 +89,13 @@ export default function ShoppingCartApp() {
       try {
         const response = await fetch("https://raw.githubusercontent.com/mounika1507/web-app/main/db.json");
         const data = await response.json();
-        console.log("Fetched data:", data); // Debugging log
+        console.log("Fetched data:", data); 
         setProducts(data.foods || []);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
     fetchProducts();
-  
-  // eslint-disable-next-line react-hooks/exhaustive-deps  
   }, []);
   
 
